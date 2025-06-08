@@ -1,0 +1,25 @@
+﻿# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build
+bin/
+obj/
+
+# ASP.NET Core secrets
+**/appsettings.*.json
+
+# Node modules (nếu có frontend riêng)
+node_modules/
+
+# Libs restored via LibMan
+wwwroot/lib/
+
+# Publish output
+*.publish/
+
+# Others
+*.log

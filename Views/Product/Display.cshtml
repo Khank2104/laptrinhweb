@@ -1,0 +1,20 @@
+﻿@model _2280601466_NguyenNgocKhanh.Models.Product
+
+<h2>@Model.Name</h2>
+
+<div>
+    <h3>Price: @Model.Price.ToString("C")</h3>
+    <p>@Model.Description</p>
+
+    <p>
+        <strong>Category:</strong>
+        @(Model.Category?.Name ?? "No Category")
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+    {
+        <img src="@Model.ImageUrl" alt="Product Image" style="max-width: 200px;" />
+    }
+</div>
+
+<a asp-action="Index" class="btn btn-secondary">Back to List</a>
