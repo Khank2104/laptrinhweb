@@ -20,7 +20,7 @@
         {
             <tr>
                 <td>@product.Name</td>
-                <td>@product.Category?.Name</td>
+                <td>@(product.Category != null ? product.Category.Name : "No Category")</td>
                 <td>@product.Price.ToString("C")</td>
                 <td>
                     <a asp-area="Admin" asp-controller="Product" asp-action="Edit" asp-route-id="@product.Id">Edit</a> |
