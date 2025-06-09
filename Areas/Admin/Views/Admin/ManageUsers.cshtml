@@ -1,6 +1,67 @@
-﻿@{
-    ViewData["Title"] = "Quản lý sản phẩm";
+﻿@model _2280601466_NguyenNgocKhanh.Areas.Admin.Models.ManageUsersViewModel
+
+@{
+    ViewData["Title"] = "Quản lý người dùng";
 }
 
-<h2>Quản lý sản phẩm</h2>
-<p>Danh sách và thao tác sản phẩm ở đây.</p>
+<h2 class="mb-4">@ViewData["Title"]</h2>
+
+<div class="mb-3">
+    <a asp-action="CreateUser" asp-controller="Admin" asp-area="Admin" class="btn btn-success">
+        Thêm người dùng
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" role="alert">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger" role="alert">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Roles hiện tại</th>
+            <th>Chọn role mới</th>
+            <th style="width: 120px;">Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.Email</td>
+                <td>@string.Join(", ", user.Roles)</td>
+                <td>
+                    <form method="post" asp-action="UpdateUserRoles" asp-controller="Admin" asp-area="Admin" class="d-flex">
+                        <input type="hidden" name="userId" value="@user.UserId" />
+                        <select name="selectedRole" class="form-select form-select-sm me-2" required>
+                            <option value="" disabled>Chọn role</option>
+                            @foreach (var role in Model.AllRoles)
+                            {
+                                <option value="@role" @(user.Roles.Contains(role) ? "selected" : "")>@role</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary btn-sm" title="Cập nhật role">Cập nhật</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" asp-action="DeleteUser" asp-controller="Admin" asp-area="Admin"
+                          onsubmit="return confirm('Bạn có chắc muốn xóa người dùng này?');">
+                        <input type="hidden" name="userId" value="@user.UserId" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa người dùng">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

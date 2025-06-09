@@ -55,10 +55,13 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Seed dữ liệu mẫu nếu chưa có
+// Seed dữ liệu mẫu và tạo tài khoản Admin nếu chưa có
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
     dbContext.Database.Migrate();
 
     // Seed categories nếu chưa có
@@ -71,6 +74,35 @@ using (var scope = app.Services.CreateScope())
             new Category { Name = "PC" }
         );
         dbContext.SaveChanges();
+    }
+
+    // Tạo role Admin và User nếu chưa có
+    string[] roles = { "Admin", "User" };
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+
+    // Tạo tài khoản admin mặc định nếu chưa có
+    var adminEmail = "admin@gmail.com";
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    if (adminUser == null)
+    {
+        var user = new IdentityUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(user, "Admin@123");
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(user, "Admin");
+        }
     }
 }
 
