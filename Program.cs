@@ -1,17 +1,19 @@
+using _2280601466_NguyenNgocKhanh.Models;
+using _2280601466_NguyenNgocKhanh.Repositories;
+using _2280601466_NguyenNgocKhanh.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using _2280601466_NguyenNgocKhanh.Repositories;
-using _2280601466_NguyenNgocKhanh.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// ----------------- SERVICES CONFIGURATION -----------------
 builder.Services.AddControllersWithViews();
 
+// Kết nối DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add Identity with Roles and UI
+// Thêm dịch vụ Identity (có vai trò)
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
@@ -20,15 +22,21 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 .AddDefaultTokenProviders()
 .AddDefaultUI();
 
+// Razor Pages
 builder.Services.AddRazorPages();
 
-// DI for Repositories
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(); // Dùng để lưu giỏ hàng trong session
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); // Cần thiết cho CartService
+builder.Services.AddScoped<CartDbService>();
+
+// Inject Repository
 builder.Services.AddScoped<IProductRepository, EFProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, EFCategoryRepository>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// ----------------- MIDDLEWARE CONFIGURATION -----------------
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -40,31 +48,33 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
 
-// 👉 Route cho Areas (Admin, v.v...)
+// Kích hoạt route cho khu vực (Areas)
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
-// 👉 Route mặc định
+// Route mặc định
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Seed dữ liệu mẫu và tạo tài khoản Admin nếu chưa có
-using (var scope = app.Services.CreateScope())
+// ----------------- SEED DỮ LIỆU BAN ĐẦU -----------------
+async Task SeedDataAsync(IServiceProvider serviceProvider)
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
+    var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-    dbContext.Database.Migrate();
+    // Tự động migrate nếu chưa có
+    await dbContext.Database.MigrateAsync();
 
-    // Seed categories nếu chưa có
+    // Seed danh mục sản phẩm nếu chưa có
     if (!dbContext.Categories.Any())
     {
         dbContext.Categories.AddRange(
@@ -73,10 +83,10 @@ using (var scope = app.Services.CreateScope())
             new Category { Name = "Điện Thoại" },
             new Category { Name = "PC" }
         );
-        dbContext.SaveChanges();
+        await dbContext.SaveChangesAsync();
     }
 
-    // Tạo role Admin và User nếu chưa có
+    // Tạo các vai trò nếu chưa có
     string[] roles = { "Admin", "User" };
     foreach (var role in roles)
     {
@@ -86,9 +96,10 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // Tạo tài khoản admin mặc định nếu chưa có
+    // Tạo user admin nếu chưa có
     var adminEmail = "admin@gmail.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
     if (adminUser == null)
     {
         var user = new IdentityUser
@@ -103,6 +114,29 @@ using (var scope = app.Services.CreateScope())
         {
             await userManager.AddToRoleAsync(user, "Admin");
         }
+        else
+        {
+            // Nếu lỗi khi tạo admin, log ra màn hình console
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine($"Error creating admin user: {error.Description}");
+            }
+        }
+    }
+}
+
+// Gọi seed dữ liệu khi app khởi chạy
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    try
+    {
+        await SeedDataAsync(services);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Lỗi khi seed dữ liệu: {ex.Message}");
     }
 }
 

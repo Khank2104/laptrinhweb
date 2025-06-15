@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using _2280601466_NguyenNgocKhanh.Areas.Admin.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using _2280601466_NguyenNgocKhanh.Areas.Admin.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,7 +27,6 @@ namespace _2280601466_NguyenNgocKhanh.Areas.Admin.Controllers
             return View();
         }
 
-        // Hiển thị danh sách user và roles
         public async Task<IActionResult> ManageUsers()
         {
             var users = _userManager.Users.ToList();
@@ -46,53 +46,141 @@ namespace _2280601466_NguyenNgocKhanh.Areas.Admin.Controllers
             var model = new ManageUsersViewModel
             {
                 Users = userRolesViewModel,
-                AllRoles = _roleManager.Roles
-                    .Select(r => r.Name ?? "")
-                    .Where(name => !string.IsNullOrEmpty(name))
-                    .ToList()
+                AllRoles = _roleManager.Roles.Select(r => r.Name ?? "").Where(name => !string.IsNullOrEmpty(name)).ToList()
             };
 
             return View(model);
         }
 
-        // Cập nhật role cho user
-        [HttpPost]
-        public async Task<IActionResult> UpdateUserRoles(string userId, string selectedRole)
+        // ✅ Hiển thị form cập nhật quyền
+        [HttpGet]
+        public async Task<IActionResult> EditUserRole(string id)
         {
-            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(selectedRole))
-                return BadRequest("UserId hoặc Role không được để trống");
-
-            if (!await _roleManager.RoleExistsAsync(selectedRole))
-                return BadRequest("Role không tồn tại");
-
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-                return NotFound("User không tồn tại");
-
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            var result = await _userManager.AddToRoleAsync(user, selectedRole);
-
-            if (!result.Succeeded)
+            if (string.IsNullOrEmpty(id))
             {
-                ModelState.AddModelError("", "Cập nhật role thất bại");
                 return RedirectToAction(nameof(ManageUsers));
             }
 
-            TempData["SuccessMessage"] = "Cập nhật quyền thành công.";
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy người dùng.";
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            var model = new UpdateUserRoleViewModel
+            {
+                UserId = user.Id,
+                Email = user.Email ?? "",
+                CurrentRole = currentRoles.FirstOrDefault(),
+                AllRoles = _roleManager.Roles.Select(r => new SelectListItem
+                {
+                    Value = r.Name,
+                    Text = r.Name
+                }).ToList()
+            };
+
+            return View(model);
+        }
+
+
+        // ✅ Xử lý cập nhật quyền (POST)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditUserRole(UpdateUserRoleViewModel model)
+        {
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy người dùng.";
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+            var result = await _userManager.AddToRoleAsync(user, model.NewRole);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = "Cập nhật quyền thất bại.";
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            TempData["SuccessMessage"] = "Đã cập nhật quyền thành công.";
             return RedirectToAction(nameof(ManageUsers));
         }
 
-        // Hiển thị form tạo tài khoản
+        // ✅ Bước 1: Hiển thị trang xác nhận xóa
         [HttpGet]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy người dùng.";
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var model = new UserRolesViewModel
+            {
+                UserId = user.Id,
+                Email = user.Email ?? "",
+                Roles = roles
+            };
+
+            return View(model);
+        }
+
+        // ✅ Bước 2: Xác nhận xóa
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmDeleteUser(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy người dùng.";
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Any())
+            {
+                var removeRolesResult = await _userManager.RemoveFromRolesAsync(user, roles);
+                if (!removeRolesResult.Succeeded)
+                {
+                    TempData["ErrorMessage"] = "Không thể xóa roles: " + string.Join(", ", removeRolesResult.Errors.Select(e => e.Description));
+                    return RedirectToAction(nameof(ManageUsers));
+                }
+            }
+
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = "Không thể xóa user: " + string.Join(", ", result.Errors.Select(e => e.Description));
+                return RedirectToAction(nameof(ManageUsers));
+            }
+
+            TempData["SuccessMessage"] = "Đã xóa người dùng thành công.";
+            return RedirectToAction(nameof(ManageUsers));
+        }
+
         public IActionResult CreateUser()
         {
             ViewBag.AllRoles = _roleManager.Roles.Select(r => r.Name).ToList();
             return View();
         }
 
-        // Xử lý tạo tài khoản mới
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateUser(string email, string password, string selectedRole)
         {
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(selectedRole))
@@ -107,7 +195,12 @@ namespace _2280601466_NguyenNgocKhanh.Areas.Admin.Controllers
 
             if (result.Succeeded)
             {
-                await _userManager.AddToRoleAsync(user, selectedRole);
+                var roleResult = await _userManager.AddToRoleAsync(user, selectedRole);
+                if (!roleResult.Succeeded)
+                {
+                    ModelState.AddModelError("", "Thêm role thất bại.");
+                }
+
                 TempData["SuccessMessage"] = "Tạo người dùng thành công.";
                 return RedirectToAction(nameof(ManageUsers));
             }
@@ -119,30 +212,6 @@ namespace _2280601466_NguyenNgocKhanh.Areas.Admin.Controllers
 
             ViewBag.AllRoles = _roleManager.Roles.Select(r => r.Name).ToList();
             return View();
-        }
-
-        // Xóa tài khoản
-        [HttpPost]
-        public async Task<IActionResult> DeleteUser(string userId)
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound("Không tìm thấy người dùng.");
-            }
-
-            var result = await _userManager.DeleteAsync(user);
-
-            if (!result.Succeeded)
-            {
-                TempData["ErrorMessage"] = "Xóa người dùng thất bại.";
-            }
-            else
-            {
-                TempData["SuccessMessage"] = "Đã xóa người dùng.";
-            }
-
-            return RedirectToAction(nameof(ManageUsers));
         }
 
         public IActionResult ManageProducts()

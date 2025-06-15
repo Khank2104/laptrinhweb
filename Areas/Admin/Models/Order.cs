@@ -8,7 +8,7 @@ namespace _2280601466_NguyenNgocKhanh.Models
         public int Id { get; set; }
 
         [Required]
-        public string CustomerName { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
 
         [DataType(DataType.Date)]
         public DateTime OrderDate { get; set; }
