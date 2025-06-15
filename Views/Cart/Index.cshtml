@@ -1,0 +1,51 @@
+﻿@model List<_2280601466_NguyenNgocKhanh.Models.CartItem>
+
+<h2>Giỏ hàng</h2>
+
+@if (!Model.Any())
+{
+    <p>Giỏ hàng trống</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Sản phẩm</th>
+                <th>Giá</th>
+                <th>Số lượng</th>
+                <th>Tổng</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Product.Name</td>
+                    <td>@item.Product.Price.ToString("N0") ₫</td>
+                    <td>@item.Quantity</td>
+                    <td>@(item.Quantity* item.Product.Price) ₫</td>
+                    <td>
+                        <form asp-action="Remove" method="post">
+                            <input type="hidden" name="productId" value="@item.ProductId" />
+                            <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            <tr>
+                <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
+                <td colspan="2" class="fw-bold text-danger">
+                    @Model.Sum(item => item.Quantity * item.Product.Price).ToString("N0") ₫
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <form asp-action="Clear" method="post">
+        <button type="submit" class="btn btn-warning">Xóa toàn bộ</button>
+    </form>
+    <a asp-controller="Product" asp-action="Index" class="btn btn-secondary mb-3">
+        <i class="bi bi-arrow-left-circle"></i> Quay lại sản phẩm
+    </a>
+}

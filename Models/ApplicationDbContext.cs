@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<Category> Categories { get; set; }
     public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<Order> Orders { get; set; } // ✅ Thêm dòng này
+    public DbSet<CartItem> CartItems { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,67 +1,91 @@
 ﻿@model _2280601466_NguyenNgocKhanh.Areas.Admin.Models.ManageUsersViewModel
-
 @{
     ViewData["Title"] = "Quản lý người dùng";
 }
 
-<h2 class="mb-4">@ViewData["Title"]</h2>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+        <h2 class="text-primary m-0">@ViewData["Title"]</h2>
+        <a asp-action="CreateUser"
+           asp-area="Admin"
+           asp-controller="Admin"
+           class="btn btn-success shadow-sm px-3">
+            <i class="bi bi-person-plus me-1"></i> Thêm người dùng
+        </a>
+    </div>
 
-<div class="mb-3">
-    <a asp-action="CreateUser" asp-controller="Admin" asp-area="Admin" class="btn btn-success">
-        Thêm người dùng
-    </a>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    else if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle text-center shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>Email</th>
+                    <th>Vai trò hiện tại</th>
+                    <th>Chỉnh vai trò</th>
+                    <th>Xoá tài khoản</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    <tr>
+                        <td class="text-start">@user.Email</td>
+                        <td>@string.Join(", ", user.Roles)</td>
+
+                        <!-- Form chỉnh sửa vai trò -->
+                        <td>
+                            <form asp-action="EditUserRole"
+                                  asp-controller="Admin"
+                                  asp-area="Admin"
+                                  method="post"
+                                  class="d-flex flex-column align-items-center">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@user.UserId" />
+                                <select name="selectedRoles" multiple class="form-select form-select-sm mb-2" style="min-width: 150px;">
+                                    @foreach (var role in Model.AllRoles)
+                                    {
+                                        <option value="@role" selected="@user.Roles.Contains(role)">
+                                            @role
+                                        </option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-save me-1"></i> Lưu
+                                </button>
+                            </form>
+                        </td>
+
+                        <!-- Nút xóa -->
+                        <td>
+                            <form asp-action="DeleteUser"
+                                  asp-controller="Admin"
+                                  asp-area="Admin"
+                                  method="post"
+                                  onsubmit="return confirm('Bạn có chắc muốn xóa người dùng này?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@user.UserId" />
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="bi bi-trash me-1"></i> Xoá
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
-
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success" role="alert">
-        @TempData["SuccessMessage"]
-    </div>
-}
-
-@if (TempData["ErrorMessage"] != null)
-{
-    <div class="alert alert-danger" role="alert">
-        @TempData["ErrorMessage"]
-    </div>
-}
-
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Email</th>
-            <th>Roles hiện tại</th>
-            <th>Chọn role mới</th>
-            <th style="width: 120px;">Thao tác</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var user in Model.Users)
-        {
-            <tr>
-                <td>@user.Email</td>
-                <td>@string.Join(", ", user.Roles)</td>
-                <td>
-                    <form method="post" asp-action="UpdateUserRoles" asp-controller="Admin" asp-area="Admin" class="d-flex">
-                        <input type="hidden" name="userId" value="@user.UserId" />
-                        <select name="selectedRole" class="form-select form-select-sm me-2" required>
-                            <option value="" disabled>Chọn role</option>
-                            @foreach (var role in Model.AllRoles)
-                            {
-                                <option value="@role" @(user.Roles.Contains(role) ? "selected" : "")>@role</option>
-                            }
-                        </select>
-                        <button type="submit" class="btn btn-outline-primary btn-sm" title="Cập nhật role">Cập nhật</button>
-                    </form>
-                </td>
-                <td>
-                    <form method="post" asp-action="DeleteUser" asp-controller="Admin" asp-area="Admin"
-                          onsubmit="return confirm('Bạn có chắc muốn xóa người dùng này?');">
-                        <input type="hidden" name="userId" value="@user.UserId" />
-                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa người dùng">Xóa</button>
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>

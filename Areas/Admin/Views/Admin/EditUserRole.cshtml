@@ -1,0 +1,51 @@
+﻿@model _2280601466_NguyenNgocKhanh.Areas.Admin.Models.UpdateUserRoleViewModel
+
+@{
+    ViewData["Title"] = "Cập nhật Role người dùng";
+}
+
+<h2 class="mb-4">@ViewData["Title"]</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div>@error.ErrorMessage</div>
+        }
+    </div>
+}
+
+<form asp-action="EditUserRole" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="UserId" />
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label">Email:</label>
+        <input class="form-control" asp-for="Email" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Quyền hiện tại:</label>
+        <input class="form-control" value="@Model.CurrentRole" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="NewRole" class="form-label">Quyền mới:</label>
+        <select asp-for="NewRole" class="form-select" asp-items="Model.AllRoles">
+            <option value="">-- Chọn quyền --</option>
+        </select>
+        <span asp-validation-for="NewRole" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Cập nhật</button>
+    <a asp-action="ManageUsers" class="btn btn-secondary ms-2">Hủy</a>
+</form>

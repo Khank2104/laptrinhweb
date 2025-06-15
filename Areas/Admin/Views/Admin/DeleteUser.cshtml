@@ -1,0 +1,21 @@
+﻿@model _2280601466_NguyenNgocKhanh.Areas.Admin.Models.UserRolesViewModel
+@{
+    ViewData["Title"] = "Xác nhận xóa người dùng";
+}
+
+<h2>Xác nhận xóa người dùng</h2>
+
+<div class="alert alert-warning">
+    <p>Bạn có chắc chắn muốn xóa người dùng này?</p>
+    <ul>
+        <li><strong>Email:</strong> @Model.Email</li>
+        <li><strong>Role(s):</strong> @string.Join(", ", Model.Roles)</li>
+    </ul>
+</div>
+
+<form asp-action="ConfirmDeleteUser" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="userId" value="@Model.UserId" />
+    <button type="submit" class="btn btn-danger">Xóa</button>
+    <a asp-action="ManageUsers" class="btn btn-secondary">Hủy</a>
+</form>
