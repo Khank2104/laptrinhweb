@@ -13,4 +13,5 @@ public interface IProductRepository
     Task<Product?> GetByIdWithCategoryAndImagesAsync(int id);
     Task<IEnumerable<Product>> SearchByNameAsync(string keyword);
     Task<IEnumerable<Product>> GetByCategoryIdAsync(int categoryId);
+
 }

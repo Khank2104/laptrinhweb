@@ -16,11 +16,25 @@ public class ProductController : Controller
     }
 
     // Hiển thị danh sách sản phẩm
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? categoryId)
     {
-        var products = await _productRepository.GetAllAsync();
+        var categories = await _categoryRepository.GetAllAsync();
+        ViewBag.Categories = new SelectList(categories, "Id", "Name");
+
+        IEnumerable<Product> products;
+
+        if (categoryId.HasValue && categoryId.Value > 0)
+        {
+            products = await _productRepository.GetByCategoryIdAsync(categoryId.Value);
+        }
+        else
+        {
+            products = await _productRepository.GetAllAsync();
+        }
+
         return View(products);
     }
+
 
     // Hiển thị form thêm sản phẩm mới
     public async Task<IActionResult> Add()
